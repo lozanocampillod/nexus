@@ -12,7 +12,8 @@
     "next": "15.1.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "reagraph": "^4.21.2"
+    "react-force-graph": "^1.47.3",
+    "react-force-graph-2d": "^1.27.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

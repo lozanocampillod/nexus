@@ -8158,4 +8158,5 @@ export const LANGCODES = {
   zyp: "Zyphe",
   zza: "Zazaki",
   zzj: "Zuojiang Zhuang",
+  xno: "Old French",
 };

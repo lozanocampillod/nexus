@@ -1,8 +1,8 @@
-import { LangCode } from "@/lib/langcodes";
+import { LangCode, LANGCODES } from "@/lib/langcodes";
 
 type ParserFunction = (parts: string[]) => Record<string, any>;
 
-const shortcuts: Record<string, string> = {
+const SHORTCUTS: Record<string, string> = {
   der: "derived",
   bor: "borrowed",
   lbor: "learned borrowing",
@@ -34,7 +34,10 @@ const shortcuts: Record<string, string> = {
   etystub: "etystub",
   unk: "unknown",
   unc: "uncertain",
+  "inh+": "inherited",
 };
+
+export const EXCLUDED_ROOT_TEMPLATES = ["root", "cognate", "base"];
 
 export interface TemplateNode {
   type: string;
@@ -45,9 +48,9 @@ export interface TemplateNode {
 }
 
 const parsers: Record<string, ParserFunction> = {
-  inherits: (parts: string[]): TemplateNode => {
+  inherited: (parts: string[]): TemplateNode => {
     return {
-      type: "inh",
+      type: "inherited",
       targetLang: parts[1] as LangCode,
       srcLang: parts[2] as LangCode,
       word: parts[3],
@@ -55,7 +58,7 @@ const parsers: Record<string, ParserFunction> = {
   },
   derived: (parts: string[]): TemplateNode => {
     return {
-      type: "der",
+      type: "derived",
       targetLang: parts[1] as LangCode,
       srcLang: parts[2] as LangCode,
       word: parts[3],
@@ -63,7 +66,7 @@ const parsers: Record<string, ParserFunction> = {
   },
   mention: (parts: string[]): TemplateNode => {
     return {
-      type: "m",
+      type: "mention",
       srcLang: parts[1] as LangCode,
       word: parts[2],
       note: parts[4] || "",
@@ -71,16 +74,30 @@ const parsers: Record<string, ParserFunction> = {
   },
   cognate: (parts: string[]): TemplateNode => {
     return {
-      type: "cog",
+      type: "cognate",
       srcLang: parts[1] as LangCode,
       word: parts[2],
     };
   },
   etymon: (parts: string[]): TemplateNode => {
+    const arrowSection = parts.find((part) => part.includes(">"));
+    const arrowSectionParts = arrowSection?.split(">");
     return {
       type: "etymon",
-      srcLang: parts[3] as LangCode,
-      word: parts[4].split(">")[0],
+      srcLang: LANGCODES[arrowSectionParts[0]]
+        ? arrowSectionParts[0]
+        : (parts[1] as LangCode),
+      word: LANGCODES[arrowSectionParts[0]]
+        ? arrowSectionParts[1]
+        : arrowSectionParts[0],
+    };
+  },
+  borrowed: (parts: string[]): TemplateNode => {
+    return {
+      type: "borrowed",
+      targetLang: parts[1] as LangCode,
+      srcLang: parts[2] as LangCode,
+      word: parts[3],
     };
   },
 };
@@ -91,11 +108,15 @@ export function parseTemplates(templates: string[]): TemplateNode[] {
   );
 
   return parts
-    .map((parts) => {
+    .map((parts, i) => {
       const type = parts[0];
-      const fullType = shortcuts[type] || type;
+      const fullType = SHORTCUTS[type] || type;
       if (fullType in parsers) {
-        return parsers[fullType](parts);
+        try {
+          return parsers[fullType](parts);
+        } catch (e) {
+          return undefined;
+        }
       }
       return undefined;
     })
