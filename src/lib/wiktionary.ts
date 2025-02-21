@@ -54,7 +54,7 @@ export function extractEtymologySection(data: WiktionaryData, lang: LangCode) {
   const nextLanguagePattern = /^==[^=]/;
 
   let inLanguageSection = false;
-  let languageLines: string[] = [];
+  const languageLines: string[] = [];
 
   for (const line of lines) {
     const trimmedLine = line.trim();
@@ -82,7 +82,7 @@ export function extractEtymologySection(data: WiktionaryData, lang: LangCode) {
   const nextSectionPattern = /^===/;
 
   let inEtymologySection = false;
-  let etymologyLines: string[] = [];
+  const etymologyLines: string[] = [];
 
   for (const line of languageLines) {
     if (etymologyPattern.test(line)) {

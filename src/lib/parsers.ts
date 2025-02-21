@@ -1,6 +1,6 @@
 import { LangCode, LANGCODES } from "@/lib/langcodes";
 
-type ParserFunction = (parts: string[]) => Record<string, any>;
+type ParserFunction = (parts: string[]) => TemplateNode;
 
 const SHORTCUTS: Record<string, string> = {
   der: "derived",
@@ -81,15 +81,17 @@ const parsers: Record<string, ParserFunction> = {
   },
   etymon: (parts: string[]): TemplateNode => {
     const arrowSection = parts.find((part) => part.includes(">"));
-    const arrowSectionParts = arrowSection?.split(">");
+    const arrowSectionParts = arrowSection?.split(">") || [];
+    const srcLang = LANGCODES[arrowSectionParts[0] as LangCode]
+      ? (arrowSectionParts[0] as LangCode)
+      : (parts[1] as LangCode);
+    const word = LANGCODES[arrowSectionParts[0] as LangCode]
+      ? arrowSectionParts[1]
+      : arrowSectionParts[0];
     return {
       type: "etymon",
-      srcLang: LANGCODES[arrowSectionParts[0]]
-        ? arrowSectionParts[0]
-        : (parts[1] as LangCode),
-      word: LANGCODES[arrowSectionParts[0]]
-        ? arrowSectionParts[1]
-        : arrowSectionParts[0],
+      srcLang,
+      word,
     };
   },
   borrowed: (parts: string[]): TemplateNode => {
@@ -103,18 +105,18 @@ const parsers: Record<string, ParserFunction> = {
 };
 
 export function parseTemplates(templates: string[]): TemplateNode[] {
-  const parts = templates.map((template) =>
+  const parsedParts = templates.map((template) =>
     template.split("|").map((p) => p.trim())
   );
 
-  return parts
-    .map((parts, i) => {
+  return parsedParts
+    .map((parts) => {
       const type = parts[0];
       const fullType = SHORTCUTS[type] || type;
       if (fullType in parsers) {
         try {
-          return parsers[fullType](parts);
-        } catch (e) {
+          return parsers[fullType](parts) as TemplateNode;
+        } catch {
           return undefined;
         }
       }
