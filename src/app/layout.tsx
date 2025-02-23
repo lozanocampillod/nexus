@@ -43,11 +43,11 @@ export default function RootLayout({
             <ThemeToggle />
           </header>
 
-          <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
-            <main className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto">
-              <Card className="w-full mb-4 md:mb-6">
+          <main className="flex-1 max-w-screen-xl mx-auto p-4 md:p-8">
+            <div className="flex flex-col h-full gap-8 items-center">
+              <Card className="w-full">
                 <CardHeader>
-                  <CardTitle className="text-center text-base md:text-lg">
+                  <CardTitle className="text-center">
                     Search Wiktionary
                   </CardTitle>
                 </CardHeader>
@@ -56,20 +56,17 @@ export default function RootLayout({
                 </CardContent>
               </Card>
 
-              <Card className="flex-1 w-full min-h-0">
-                <CardHeader>
-                  <CardTitle className="text-center text-base md:text-lg">
-                    Etymology Tree
-                  </CardTitle>
+              <Card className="flex-1 flex flex-col min-h-0 w-full">
+                <CardHeader className="shrink-0">
+                  <CardTitle className="text-center">Etymology Tree</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 overflow-y-auto p-4">
                   {children}
                 </CardContent>
               </Card>
-            </main>
-
+            </div>
             <WordInfoSheet className="min-w-[50vw] border-l border-gray-300 p-8 overflow-y-auto" />
-          </div>
+          </main>
         </ThemeProvider>
       </body>
     </html>
