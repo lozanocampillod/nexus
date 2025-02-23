@@ -27,7 +27,6 @@ interface LangData {
 }
 
 export default function SearchForm() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   const router = useRouter();
   const [inputWord, setInputWord] = useState("");
   const [inputLang, setInputLang] = useState("");
@@ -37,33 +36,30 @@ export default function SearchForm() {
   const [loading, setLoading] = useState(false);
 
   const fetchSearchLanguages = useDebounce(
-    useCallback(
-      async (query: string) => {
-        setLoading(true);
-        try {
-          const url = query
-            ? `${baseUrl}/api/search-lang/${query}`
-            : `${baseUrl}/api/langs`;
-          const response = await fetch(url);
-          if (!response.ok) throw new Error("Failed to fetch languages");
-          const data = await response.json();
-          const languagesData = data.data || data;
-          setLanguages(Array.isArray(languagesData) ? languagesData : []);
-        } catch (error) {
-          console.error("Error fetching search languages:", error);
-          setLanguages([]);
-        } finally {
-          setLoading(false);
-        }
-      },
-      [searchQuery]
-    ),
+    useCallback(async (query: string) => {
+      setLoading(true);
+      try {
+        const url = query
+          ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/search-lang/${query}`
+          : `${process.env.NEXT_PUBLIC_BASE_URL}/api/langs`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to fetch languages");
+        const data = await response.json();
+        const languagesData = data.data || data;
+        setLanguages(Array.isArray(languagesData) ? languagesData : []);
+      } catch (error) {
+        console.error("Error fetching search languages:", error);
+        setLanguages([]);
+      } finally {
+        setLoading(false);
+      }
+    }, []),
     300
   );
 
   useEffect(() => {
     fetchSearchLanguages(searchQuery);
-  }, [searchQuery]);
+  }, [fetchSearchLanguages, searchQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,7 +92,9 @@ export default function SearchForm() {
             aria-expanded={open}
             className="w-[200px] justify-between"
           >
-            {inputLang ? LANGCODES[inputLang] : "Select language..."}
+            {inputLang
+              ? LANGCODES[inputLang as LangCode]
+              : "Select language..."}
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
