@@ -23,7 +23,7 @@ export default function SearchForm({ initialLang }: { initialLang: string }) {
         placeholder="Enter a word"
         value={inputWord}
         onChange={(e) => setInputWord(e.target.value)}
-        className="flex-1"
+        className="flex-1 min-w-48"
       />
       <select
         value={inputLang}

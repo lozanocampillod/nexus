@@ -32,7 +32,7 @@ export default function RootLayout({
       >
         <div className="w-full h-full flex">
           <div className="w-2/3 bg-white p-8 flex flex-col items-center">
-            <Card className="w-1/2  mb-8">
+            <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="text-center">Search Wiktionary</CardTitle>
               </CardHeader>
@@ -40,7 +40,7 @@ export default function RootLayout({
                 <SearchForm initialLang={"en"} />
               </CardContent>
             </Card>
-            <Card className="w-full  flex flex-col max-h-[calc(100vh-14rem)] pb-4">
+            <Card className="w-full  flex flex-col h-[calc(100vh-14rem)] pb-4">
               <CardHeader className="shrink-0">
                 <CardTitle className="text-center">Etymology Tree</CardTitle>
               </CardHeader>

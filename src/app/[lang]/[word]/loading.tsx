@@ -1,9 +1,14 @@
+import { Skeleton } from "@/components/ui/skeleton";
+
 export default function Loading() {
   return (
-    <div className="flex justify-center items-center w-full p-8 bg-white">
-      <div className="text-center">
-        <div className="text-xl text-gray-800">Loading...</div>
-        <div className="text-gray-500">Analyzing word origins...</div>
+    <div className="flex justify-center items-start">
+      <div className="flex flex-col items-center">
+        <Skeleton className="p-5 rounded-md min-h-[94px] min-w-[176px]" />
+        <div className="w-px h-10 bg-gray-200 my-3" />
+        <Skeleton className="p-5 rounded-md min-h-[94px] min-w-[176px] " />
+        <div className="w-px h-10 bg-gray-200 my-3" />
+        <Skeleton className="p-5 rounded-md min-h-[94px] min-w-[176px] " />
       </div>
     </div>
   );
