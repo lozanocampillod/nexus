@@ -1,19 +1,79 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { LANGCODES } from "@/lib/langcodes";
+import { LangCode, LANGCODES } from "@/lib/langcodes";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import { useDebounce } from "@/hooks/useDebounce";
 
-export default function SearchForm({ initialLang }: { initialLang: string }) {
+interface LangData {
+  code: LangCode;
+  name: string;
+}
+
+export default function SearchForm() {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
   const router = useRouter();
   const [inputWord, setInputWord] = useState("");
-  const [inputLang, setInputLang] = useState(initialLang);
+  const [inputLang, setInputLang] = useState("");
+  const [open, setOpen] = useState(false);
+  const [languages, setLanguages] = useState<LangData[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const fetchSearchLanguages = useDebounce(
+    useCallback(
+      async (query: string) => {
+        setLoading(true);
+        try {
+          const url = query
+            ? `${baseUrl}/api/search-lang/${query}`
+            : `${baseUrl}/api/langs`;
+          const response = await fetch(url);
+          if (!response.ok) throw new Error("Failed to fetch languages");
+          const data = await response.json();
+          const languagesData = data.data || data;
+          setLanguages(Array.isArray(languagesData) ? languagesData : []);
+        } catch (error) {
+          console.error("Error fetching search languages:", error);
+          setLanguages([]);
+        } finally {
+          setLoading(false);
+        }
+      },
+      [searchQuery]
+    ),
+    300
+  );
+
+  useEffect(() => {
+    fetchSearchLanguages(searchQuery);
+  }, [searchQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputWord) return;
-    router.push(`/${inputLang}/${encodeURIComponent(inputWord)}`);
+    if (!inputWord.trim() || !inputLang) return;
+    router.push(`/${inputLang}/${encodeURIComponent(inputWord.trim())}`);
+  };
+
+  const handleLangSelect = (lang: string) => {
+    setInputLang(lang);
+    setOpen(false);
   };
 
   return (
@@ -28,17 +88,57 @@ export default function SearchForm({ initialLang }: { initialLang: string }) {
         onChange={(e) => setInputWord(e.target.value)}
         className="w-full sm:flex-1"
       />
-      <select
-        value={inputLang}
-        onChange={(e) => setInputLang(e.target.value)}
-        className="p-2 border border-gray-200 rounded-md w-full sm:w-48"
-      >
-        {Object.entries(LANGCODES).map(([code, language]) => (
-          <option key={code} value={code}>
-            {language}
-          </option>
-        ))}
-      </select>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-[200px] justify-between"
+          >
+            {inputLang ? LANGCODES[inputLang] : "Select language..."}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[200px] p-0">
+          <Command>
+            <CommandInput
+              placeholder="Search language..."
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+            />
+            <CommandList>
+              {loading ? (
+                <CommandEmpty className="py-4 text-center text-xs">
+                  Loading...
+                </CommandEmpty>
+              ) : languages.length === 0 ? (
+                <CommandEmpty className="py-4 text-center text-xs">
+                  No languages found
+                </CommandEmpty>
+              ) : (
+                <CommandGroup>
+                  {languages.map((lang) => (
+                    <CommandItem
+                      key={lang.code}
+                      value={lang.name}
+                      onSelect={() => handleLangSelect(lang.code)}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          inputLang === lang.code ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {lang.name}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
       <Button type="submit" className="w-full sm:w-28">
         Go
       </Button>

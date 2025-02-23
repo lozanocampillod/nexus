@@ -40,7 +40,7 @@ export default function RootLayout({
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <SearchForm initialLang={"en"} />
+                  <SearchForm />
                 </CardContent>
               </Card>
 
