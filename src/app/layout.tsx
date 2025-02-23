@@ -65,7 +65,7 @@ export default function RootLayout({
                 </CardContent>
               </Card>
             </div>
-            <WordInfoSheet className="min-w-[50vw] border-l border-gray-300 p-8 overflow-y-auto" />
+            <WordInfoSheet className="min-w-[50vw] p-8 overflow-y-auto" />
           </main>
         </ThemeProvider>
       </body>
