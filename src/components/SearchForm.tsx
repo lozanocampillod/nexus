@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
@@ -16,19 +15,23 @@ export default function SearchForm({ initialLang }: { initialLang: string }) {
     if (!inputWord) return;
     router.push(`/${inputLang}/${encodeURIComponent(inputWord)}`);
   };
+
   return (
-    <form onSubmit={handleSearch} className="flex gap-2 items-center">
+    <form
+      onSubmit={handleSearch}
+      className="flex flex-col sm:flex-row gap-4 sm:gap-2 w-full"
+    >
       <Input
         type="text"
         placeholder="Enter a word"
         value={inputWord}
         onChange={(e) => setInputWord(e.target.value)}
-        className="flex-1 min-w-48"
+        className="w-full sm:flex-1"
       />
       <select
         value={inputLang}
         onChange={(e) => setInputLang(e.target.value)}
-        className="p-2 border border-gray-200 rounded-md w-48"
+        className="p-2 border border-gray-200 rounded-md w-full sm:w-48"
       >
         {Object.entries(LANGCODES).map(([code, language]) => (
           <option key={code} value={code}>
@@ -36,7 +39,9 @@ export default function SearchForm({ initialLang }: { initialLang: string }) {
           </option>
         ))}
       </select>
-      <Button type="submit">Go</Button>
+      <Button type="submit" className="w-full sm:w-auto">
+        Go
+      </Button>
     </form>
   );
 }

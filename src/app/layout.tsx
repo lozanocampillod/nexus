@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import SearchForm from "@/components/SearchForm";
-import InformationPanel from "@/components/InformationPanel";
+import WordInfoSheet from "@/components/WordInfoSheet";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,27 +30,32 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white h-full`}
       >
-        <div className="w-full h-full flex">
-          <div className="w-2/3 bg-white p-8 flex flex-col items-center">
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="text-center">Search Wiktionary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SearchForm initialLang={"en"} />
-              </CardContent>
-            </Card>
-            <Card className="w-full  flex flex-col h-[calc(100vh-14rem)] pb-4">
-              <CardHeader className="shrink-0">
-                <CardTitle className="text-center">Etymology Tree</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 flex-1 overflow-y-auto">
-                {children}
-              </CardContent>
-            </Card>
-          </div>
+        <div className="flex h-full">
+          <main className="flex-1 max-w-screen-xl mx-auto p-4 md:p-8">
+            <div className="flex flex-col h-full gap-8">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-center">
+                    Search Wiktionary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <SearchForm initialLang={"en"} />
+                </CardContent>
+              </Card>
 
-          <InformationPanel className="w-1/3 border-l border-gray-300 p-8 overflow-y-auto" />
+              <Card className="flex-1 flex flex-col min-h-0">
+                <CardHeader className="shrink-0">
+                  <CardTitle className="text-center">Etymology Tree</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-y-auto p-4">
+                  {children}
+                </CardContent>
+              </Card>
+            </div>
+          </main>
+
+          <WordInfoSheet className="min-w-[50vw] border-l border-gray-300 p-8 overflow-y-auto" />
         </div>
       </body>
     </html>
