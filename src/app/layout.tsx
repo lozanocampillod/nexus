@@ -43,7 +43,7 @@ export default function RootLayout({
             <ThemeToggle />
           </header>
 
-          <main className="flex-1 max-w-screen-xl mx-auto p-4 md:p-8">
+          <main className="flex-1 max-w-screen-xl md:mx-auto p-4 md:p-8">
             <div className="flex flex-col h-full gap-8 items-center">
               <Card className="w-full">
                 <CardHeader>
