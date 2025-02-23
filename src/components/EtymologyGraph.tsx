@@ -5,7 +5,7 @@ import { searchWordAtom } from "@/store/atom";
 import { useAtom } from "jotai";
 
 const EtymologyGraph = ({ graph }: { graph: EtymologyNode }) => {
-  const [setSearchWord] = useAtom(searchWordAtom);
+  const [searchWord, setSearchWord] = useAtom(searchWordAtom);
 
   const renderNode = (node: EtymologyNode, depth = 0) => {
     return (

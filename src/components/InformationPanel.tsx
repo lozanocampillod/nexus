@@ -7,8 +7,8 @@ import { extractEtymologySection, fetchWiktionaryData } from "@/lib/wiktionary";
 import { searchWordAtom } from "@/store/atom";
 import { useAtom } from "jotai";
 
-export default function WordInfoPanel({}: {}) {
-  const [searchWord] = useAtom(searchWordAtom);
+export default function WordInfoPanel({ className }: { className: string }) {
+  const [searchWord, setSearchWord] = useAtom(searchWordAtom);
   const [etymology, setEtymology] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,7 +27,9 @@ export default function WordInfoPanel({}: {}) {
   }, [searchWord]);
 
   return (
-    <div className="w-1/3 border-l border-gray-300 p-8 overflow-y-auto">
+    <div
+      className={`w-1/3 border-l border-gray-300 p-8 overflow-y-auto ${className}`}
+    >
       {etymology ? (
         <Card className="w-full">
           <CardHeader className="pb-2">

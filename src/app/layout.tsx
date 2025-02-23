@@ -52,11 +52,7 @@ export default function RootLayout({
             </Card>
           </div>
 
-          <InformationPanel
-            className="w-1/3 border-l border-gray-300 p-8 overflow-y-auto"
-            lang={params.lang}
-            word={params.word}
-          />
+          <InformationPanel className="w-1/3 border-l border-gray-300 p-8 overflow-y-auto" />
         </div>
       </body>
     </html>
