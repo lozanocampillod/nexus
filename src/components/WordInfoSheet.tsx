@@ -50,11 +50,9 @@ export default function WordInfoSheet({ className }: WordInfoPanelSheetProps) {
             <SheetClose />
           </SheetHeader>
 
-          <div className="flex-1 overflow-y-auto min-h-0 max-h-[50vh]">
+          <div className="flex-1 overflow-y-auto overflow-x-wrap min-h-0 max-h-[50vh]">
             {etymology ? (
-              <pre className="text-left text-xs whitespace-pre-wrap">
-                {etymology}
-              </pre>
+              <pre className="text-left text-xs text-wrap ">{etymology}</pre>
             ) : (
               <div className="flex flex-col space-y-2">
                 <Skeleton className="h-4 w-full" />
