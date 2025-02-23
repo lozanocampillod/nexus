@@ -8,106 +8,160 @@ export interface WiktionaryData {
   };
 }
 
+/**
+ * Fetches Wiktionary data for a given word and language.
+ *
+ * @param word - The word to look up.
+ * @param lang - The language code.
+ * @returns A promise resolving to the WiktionaryData.
+ */
 export async function fetchWiktionaryData(
   word: string,
   lang: LangCode
 ): Promise<WiktionaryData> {
-  const section = word.startsWith("*")
+  const isReconstruction = word.startsWith("*");
+  const pagePrefix = isReconstruction
     ? `Reconstruction:${LANGCODES[lang].replace(/ /g, "_")}/`
     : "";
-  const cleanedWord = word.startsWith("*") ? word.slice(1) : word;
+  const cleanWord = isReconstruction ? word.slice(1) : word;
+
   const queryParams = {
     action: "parse",
-    page: `${section}${encodeURIComponent(cleanedWord)}`,
+    page: `${pagePrefix}${encodeURIComponent(cleanWord)}`,
     prop: "wikitext",
     format: "json",
     utf8: "1",
     origin: "*",
   };
-  const url = `https://en.wiktionary.org/w/api.php?${Object.entries(queryParams)
-    .map(([key, value]) => `${key}=${value}`)
-    .join("&")}`;
 
+  const queryString = Object.entries(queryParams)
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+
+  const url = `https://en.wiktionary.org/w/api.php?${queryString}`;
   const response = await fetch(url);
+
   if (!response.ok) {
-    console.error(`Error fetching data for '${word}': ${response.statusText}`);
-    throw new Error(
-      `Error fetching data for '${word}': ${response.statusText}`
-    );
+    const errorMessage = `Error fetching data for '${word}': ${response.statusText}`;
+    console.error(errorMessage);
+    throw new Error(errorMessage);
   }
 
-  return await response.json();
+  return response.json();
 }
 
-export function extractEtymologySection(data: WiktionaryData, lang: LangCode) {
-  // Validate input
+/**
+ * A generic helper function to extract section lines from an array of lines.
+ *
+ * @param lines - The array of lines to search through.
+ * @param headerRegex - The regex pattern that indicates the start of the section.
+ * @param endRegex - The regex pattern that indicates the start of a new section.
+ * @param errorMessage - The error message to throw if the section is not found.
+ * @returns The array of lines belonging to the section.
+ */
+function extractSection(
+  lines: string[],
+  headerRegex: RegExp,
+  endRegex: RegExp,
+  errorMessage: string
+): string[] {
+  let inSection = false;
+  const sectionLines: string[] = [];
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+
+    if (headerRegex.test(trimmedLine)) {
+      inSection = true;
+      continue;
+    }
+
+    if (inSection && endRegex.test(trimmedLine)) {
+      break;
+    }
+
+    if (inSection) {
+      sectionLines.push(trimmedLine);
+    }
+  }
+
+  if (sectionLines.length === 0) {
+    throw new Error(errorMessage);
+  }
+
+  return sectionLines;
+}
+
+/**
+ * Extracts the language-specific section from raw Wiktionary wikitext.
+ *
+ * @param wikitext - The complete wikitext fetched from Wiktionary.
+ * @param language - The language (e.g., "English") to extract.
+ * @returns An array of lines corresponding to the language section.
+ */
+export function extractLanguageSection(
+  wikitext: string,
+  language: string
+): string[] {
+  const lines = wikitext.split("\n");
+  const languageHeaderRegex = new RegExp(`^==\\s*${language}\\s*==`);
+  const nextLanguageRegex = /^==\s*[^=].*$/;
+
+  return extractSection(
+    lines,
+    languageHeaderRegex,
+    nextLanguageRegex,
+    `Language section for "${language}" not found.`
+  );
+}
+
+/**
+ * Extracts a specific subsection (e.g., Etymology) from a language section.
+ *
+ * @param sectionLines - The lines of a language section.
+ * @param subsectionTitle - The title of the subsection to extract.
+ * @returns The content of the subsection as a trimmed string.
+ */
+export function extractSubsection(
+  sectionLines: string[],
+  subsectionTitle: string
+): string {
+  const subsectionHeaderRegex = new RegExp(`^===\\s*${subsectionTitle}`);
+  const nextSubsectionRegex = /^===/;
+
+  const subsectionContent = extractSection(
+    sectionLines,
+    subsectionHeaderRegex,
+    nextSubsectionRegex,
+    `${subsectionTitle} section not found.`
+  );
+
+  return subsectionContent
+    .filter((line) => line.length > 0)
+    .join("\n")
+    .trim();
+}
+
+/**
+ * Convenience function to extract the etymology subsection for a given language.
+ *
+ * @param data - The WiktionaryData fetched.
+ * @param lang - The language code.
+ * @returns The etymology section content as a string.
+ */
+export function extractEtymologySection(
+  data: WiktionaryData,
+  lang: LangCode
+): string {
   if (!data?.parse?.wikitext) {
     throw new Error("Invalid JSON structure.");
   }
 
   const wikitext = data.parse.wikitext["*"];
-  const lines = wikitext.split("\n");
+  const language = LANGCODES[lang];
+  const languageSection = extractLanguageSection(wikitext, language);
 
-  // Step 1: Extract the language section
-  const languageName = LANGCODES[lang];
-  const languagePattern = new RegExp(`^==${languageName}==`);
-  const nextLanguagePattern = /^==[^=]/;
-
-  let inLanguageSection = false;
-  const languageLines: string[] = [];
-
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-
-    if (languagePattern.test(trimmedLine)) {
-      inLanguageSection = true;
-      continue;
-    }
-
-    if (inLanguageSection && nextLanguagePattern.test(trimmedLine)) {
-      break;
-    }
-
-    if (inLanguageSection) {
-      languageLines.push(trimmedLine);
-    }
-  }
-
-  if (languageLines.length === 0) {
-    throw new Error(`Language section for "${lang}" not found.`);
-  }
-
-  // Step 2: Extract etymology subsection from language section
-  const etymologyPattern = /^===Etymology/;
-  const nextSectionPattern = /^===/;
-
-  let inEtymologySection = false;
-  const etymologyLines: string[] = [];
-
-  for (const line of languageLines) {
-    if (etymologyPattern.test(line)) {
-      inEtymologySection = true;
-      continue;
-    }
-
-    if (inEtymologySection && nextSectionPattern.test(line)) {
-      break;
-    }
-
-    if (inEtymologySection) {
-      etymologyLines.push(line);
-    }
-  }
-
-  if (etymologyLines.length === 0) {
-    throw new Error(`Etymology section not found under "${lang}".`);
-  }
-
-  // Return non-empty etymology lines
-  return etymologyLines
-    .filter((line) => line.length > 0)
-    .join("\n")
-    .trim();
+  return extractSubsection(languageSection, "Etymology");
 }
 
 export function extractTemplates(text: string): string[] {

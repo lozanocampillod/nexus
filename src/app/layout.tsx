@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import SearchForm from "@/components/SearchForm";
+import InformationPanel from "@/components/InformationPanel";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,15 +22,42 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
+  params,
 }: Readonly<{
   children: React.ReactNode;
+  params: { lang: string; word: string };
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="h-full">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white h-full`}
       >
-        {children}
+        <div className="w-full h-full flex">
+          <div className="w-2/3 bg-white p-8 flex flex-col items-center">
+            <Card className="w-1/2  mb-8">
+              <CardHeader>
+                <CardTitle className="text-center">Search Wiktionary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SearchForm initialLang={"en"} />
+              </CardContent>
+            </Card>
+            <Card className="w-full  flex flex-col max-h-[calc(100vh-14rem)] pb-4">
+              <CardHeader className="shrink-0">
+                <CardTitle className="text-center">Etymology Tree</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 flex-1 overflow-y-auto">
+                {children}
+              </CardContent>
+            </Card>
+          </div>
+
+          <InformationPanel
+            className="w-1/3 border-l border-gray-300 p-8 overflow-y-auto"
+            lang={params.lang}
+            word={params.word}
+          />
+        </div>
       </body>
     </html>
   );
