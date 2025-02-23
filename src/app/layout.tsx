@@ -22,10 +22,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-  params,
 }: Readonly<{
   children: React.ReactNode;
-  params: { lang: string; word: string };
 }>) {
   return (
     <html lang="en" className="h-full">
