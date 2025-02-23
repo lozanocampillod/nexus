@@ -1,6 +1,6 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LangCode, LANGCODES } from "@/lib/langcodes";
 import { extractEtymologySection, fetchWiktionaryData } from "@/lib/wiktionary";
 import { searchWordAtom } from "@/store/atom";
@@ -13,7 +13,7 @@ import {
   SheetTitle,
   SheetClose,
 } from "@/components/ui/sheet";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface WordInfoPanelSheetProps {
   className?: string;

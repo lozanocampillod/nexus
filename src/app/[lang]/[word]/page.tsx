@@ -1,4 +1,4 @@
-import EtymologyGraph from "@/components/EtymologyGraph";
+import EtymologyGraph from "@/components/etymology-graph";
 
 async function fetchEtymologyGraph(word: string, lang: string) {
   const response = await fetch(

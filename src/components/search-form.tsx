@@ -19,7 +19,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface LangData {
   code: LangCode;
@@ -91,7 +91,7 @@ export default function SearchForm() {
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="lg:w-[200px] justify-between"
+            className="md:w-[200px] justify-between"
           >
             {inputLang
               ? LANGCODES[inputLang as LangCode]
@@ -99,7 +99,7 @@ export default function SearchForm() {
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="lg:w-[200px] p-0">
+        <PopoverContent className="md:w-[200px] p-0">
           <Command>
             <CommandInput
               placeholder="Search language..."
