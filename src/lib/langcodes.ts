@@ -8169,34 +8169,3 @@ export function searchLang(query: string): { code: string; name: string }[] {
 
   return matches.slice(0, 10);
 }
-interface PaginatedLangsResponse {
-  data: {
-    code: string;
-    name: string;
-  }[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
-export function getPaginatedLangs(
-  offset: number,
-  limit: number
-): PaginatedLangsResponse {
-  const allLangs = Object.entries(LANGCODES).map(([code, name]) => ({
-    code,
-    name,
-  }));
-
-  const total = allLangs.length;
-  const totalPages = Math.ceil(total / limit);
-
-  return {
-    data: allLangs.slice(offset, offset + limit),
-    total,
-    page: Math.floor(offset / limit) + 1,
-    limit,
-    totalPages,
-  };
-}

@@ -31,22 +31,23 @@ export default function SearchForm() {
   const [inputWord, setInputWord] = useState("");
   const [inputLang, setInputLang] = useState("");
   const [open, setOpen] = useState(false);
-  const [languages, setLanguages] = useState<LangData[]>([]);
+  const [languages, setLanguages] = useState<LangData[] | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
 
   const fetchSearchLanguages = useDebounce(
     useCallback(async (query: string) => {
+      if (!query) {
+        return;
+      }
+
       setLoading(true);
       try {
-        const url = query
-          ? `${process.env.NEXT_PUBLIC_BASE_URL}/api/search-lang/${query}`
-          : `${process.env.NEXT_PUBLIC_BASE_URL}/api/langs`;
+        const url = `${process.env.NEXT_PUBLIC_BASE_URL}/api/search-lang/${query}`;
         const response = await fetch(url);
         if (!response.ok) throw new Error("Failed to fetch languages");
         const data = await response.json();
-        const languagesData = data.data || data;
-        setLanguages(Array.isArray(languagesData) ? languagesData : []);
+        setLanguages(data);
       } catch (error) {
         console.error("Error fetching search languages:", error);
         setLanguages([]);
@@ -109,6 +110,10 @@ export default function SearchForm() {
               {loading ? (
                 <CommandEmpty className="py-4 text-center text-xs">
                   Loading...
+                </CommandEmpty>
+              ) : languages === null ? (
+                <CommandEmpty className="py-4 text-center text-xs">
+                  Search for a language
                 </CommandEmpty>
               ) : languages.length === 0 ? (
                 <CommandEmpty className="py-4 text-center text-xs">
