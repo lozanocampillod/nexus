@@ -1,10 +1,12 @@
 import EtymologyGraph from "@/components/EtymologyGraph";
 
 async function fetchEtymologyGraph(word: string, lang: string) {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  const response = await fetch(`${baseUrl}/api/${lang}/${word}`, {
-    next: { revalidate: 3600 },
-  });
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/${lang}/${word}`,
+    {
+      next: { revalidate: 3600 },
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`Failed to fetch etymology graph for word: ${word}`);
