@@ -39,7 +39,7 @@ export default function SearchForm({ initialLang }: { initialLang: string }) {
           </option>
         ))}
       </select>
-      <Button type="submit" className="w-full sm:w-auto">
+      <Button type="submit" className="w-full sm:w-28">
         Go
       </Button>
     </form>

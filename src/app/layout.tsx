@@ -32,8 +32,8 @@ export default function RootLayout({
       >
         <div className="flex h-full">
           <main className="flex-1 max-w-screen-xl mx-auto p-4 md:p-8">
-            <div className="flex flex-col h-full gap-8">
-              <Card>
+            <div className="flex flex-col h-full gap-8 items-center">
+              <Card className="lg:w-2/3">
                 <CardHeader>
                   <CardTitle className="text-center">
                     Search Wiktionary
@@ -44,7 +44,7 @@ export default function RootLayout({
                 </CardContent>
               </Card>
 
-              <Card className="flex-1 flex flex-col min-h-0">
+              <Card className="flex-1 flex flex-col min-h-0 w-full">
                 <CardHeader className="shrink-0">
                   <CardTitle className="text-center">Etymology Tree</CardTitle>
                 </CardHeader>
