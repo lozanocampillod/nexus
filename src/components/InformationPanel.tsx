@@ -37,7 +37,7 @@ export default function WordInfoPanel({ className }: { className: string }) {
           </CardHeader>
           <CardContent>
             <div className="text-sm text-gray-500 font-mono mb-6">
-              {LANGCODES[searchWord.lang]}
+              {LANGCODES[searchWord.lang as LangCode]}
             </div>
             <pre className="text-left text-xs whitespace-pre-wrap">
               {etymology}
