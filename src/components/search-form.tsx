@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -142,7 +142,11 @@ export default function SearchForm() {
           </Command>
         </PopoverContent>
       </Popover>
-      <Button type="submit" className="w-full sm:w-28">
+      <Button
+        type="submit"
+        className="w-full sm:w-28"
+        disabled={!inputWord || !inputLang}
+      >
         Go
       </Button>
     </form>

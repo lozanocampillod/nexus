@@ -21,8 +21,8 @@ const EtymologyGraph = ({ graph }: { graph: EtymologyNode }) => {
         <motion.div
           className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 rounded-md min-w-[11rem] text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer"
           onClick={() => (setWord(node.word), setLang(node.lang))}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
         >
           <div className="text-lg font-medium text-gray-800 dark:text-gray-200">
             {node.word}
@@ -65,7 +65,7 @@ const EtymologyGraph = ({ graph }: { graph: EtymologyNode }) => {
         className="min-w-[50vw] p-8 overflow-y-auto"
         word={word}
         lang={lang}
-        onOpenChange={(isOpen) => !isOpen && setWord(null)}
+        onOpenChange={(isOpen) => !isOpen && setWord(null) && setLang(null)}
       />
     </>
   );
