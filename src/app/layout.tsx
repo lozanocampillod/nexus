@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import SearchForm from "@/components/search-form";
-import WordInfoSheet from "@/components/word-info-sheet";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -45,7 +44,7 @@ export default function RootLayout({
 
           <main className="flex-1 p-4 md:p-8">
             <div className="flex flex-col h-full gap-8 items-center justify-center">
-              <Card className="w-full">
+              <Card className="lg:w-1/2 w-full">
                 <CardHeader>
                   <CardTitle className="text-center">
                     Search Wiktionary
@@ -55,12 +54,7 @@ export default function RootLayout({
                   <SearchForm />
                 </CardContent>
               </Card>
-
-              <Card className="flex-1 flex flex-col w-full max-h-[calc(100vh-14rem)]">
-                <CardContent className="flex-1 overflow-y-auto p-4">
-                  {children}
-                </CardContent>
-              </Card>
+              {children}
             </div>
           </main>
         </ThemeProvider>

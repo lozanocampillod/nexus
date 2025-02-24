@@ -1,14 +1,9 @@
 "use client";
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import {
-  hierarchy,
-  tree,
-  HierarchyNode,
-  HierarchyPointLink,
-} from "d3-hierarchy";
+import { hierarchy, tree, HierarchyNode } from "d3-hierarchy";
 import { select, Selection } from "d3-selection";
-import { zoom, ZoomBehavior, zoomIdentity, ZoomTransform } from "d3-zoom";
-import { linkVertical, Link } from "d3-shape";
+import { zoom, ZoomBehavior, zoomIdentity } from "d3-zoom";
+import { linkVertical } from "d3-shape";
 import WordInfoSheet from "@/components/word-info-sheet";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, RotateCcw, Maximize2 } from "lucide-react";
