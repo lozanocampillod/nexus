@@ -1,8 +1,41 @@
 import { LangCode, LANGCODES } from "@/lib/langcodes";
+import { Effect, pipe } from "effect";
 
 type ParserFunction = (parts: string[]) => TemplateNode;
 
-const SHORTCUTS: Record<string, string> = {
+type TemplateType =
+  | "inherited"
+  | "derived"
+  | "borrowed"
+  | "learned borrowing"
+  | "orthographic borrowing"
+  | "PIE root"
+  | "affix"
+  | "prefix"
+  | "confix"
+  | "suffix"
+  | "compound"
+  | "blend"
+  | "clipping"
+  | "short for"
+  | "back-form"
+  | "doublet"
+  | "onomatopoeic"
+  | "calque"
+  | "semantic loan"
+  | "named-after"
+  | "phono-semantic matching"
+  | "mention"
+  | "cognate"
+  | "noncognate"
+  | "langname-mention"
+  | "rfe"
+  | "etystub"
+  | "unknown"
+  | "uncertain"
+  | "etymon";
+
+const SHORTCUTS: Record<string, TemplateType> = {
   der: "derived",
   bor: "borrowed",
   lbor: "learned borrowing",
@@ -40,7 +73,7 @@ const SHORTCUTS: Record<string, string> = {
 export const EXCLUDED_ROOT_TEMPLATES = ["root", "cognate", "base"];
 
 export interface TemplateNode {
-  type: string;
+  type: TemplateType;
   targetLang?: LangCode;
   srcLang?: LangCode;
   word: string;
@@ -113,14 +146,20 @@ export function parseTemplates(templates: string[]): TemplateNode[] {
     .map((parts) => {
       const type = parts[0];
       const fullType = SHORTCUTS[type] || type;
+
       if (fullType in parsers) {
-        try {
-          return parsers[fullType](parts) as TemplateNode;
-        } catch {
-          return undefined;
-        }
+        const parseEffect = pipe(
+          Effect.try(() => parsers[fullType](parts)),
+          Effect.catchAll((error) => {
+            console.error(`Error parsing template: ${error}`);
+            return Effect.succeed(undefined);
+          })
+        );
+
+        return Effect.runSync(parseEffect);
       }
+
       return undefined;
     })
-    .filter(Boolean) as TemplateNode[];
+    .filter((node) => !!node);
 }

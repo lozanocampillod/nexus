@@ -20,7 +20,7 @@ export async function buildEtymologyGraph(
   lang: LangCode = "en",
   depth: number = 10
 ): Promise<EtymologyNode> {
-  if (depth === 0 || type === "cog" || type === "unk") {
+  if (depth === 0 || type === "cognate" || type === "unk") {
     return {
       type: type,
       lang: lang,
@@ -58,7 +58,7 @@ export async function buildEtymologyGraph(
       : null;
 
   const cognateNodes = parsedTemplates
-    .filter((template) => template.type === "cog")
+    .filter((template) => template.type === "cognate")
     .map((template) => ({
       type: template.type,
       lang: template.srcLang ?? "und",

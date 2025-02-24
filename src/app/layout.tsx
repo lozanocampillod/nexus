@@ -43,8 +43,8 @@ export default function RootLayout({
             <ThemeToggle />
           </header>
 
-          <main className="flex-1 max-w-screen-xl md:mx-auto p-4 md:p-8">
-            <div className="flex flex-col h-full gap-8 items-center">
+          <main className="flex-1 p-4 md:p-8">
+            <div className="flex flex-col h-full gap-8 items-center justify-center">
               <Card className="w-full">
                 <CardHeader>
                   <CardTitle className="text-center">
@@ -56,10 +56,7 @@ export default function RootLayout({
                 </CardContent>
               </Card>
 
-              <Card className="flex-1 flex flex-col min-h-0 w-full">
-                <CardHeader className="shrink-0">
-                  <CardTitle className="text-center">Etymology Tree</CardTitle>
-                </CardHeader>
+              <Card className="flex-1 flex flex-col w-full max-h-[calc(100vh-14rem)]">
                 <CardContent className="flex-1 overflow-y-auto p-4">
                   {children}
                 </CardContent>
