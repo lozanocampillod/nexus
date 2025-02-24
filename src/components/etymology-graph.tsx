@@ -1,6 +1,11 @@
 "use client";
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { hierarchy, tree, HierarchyNode } from "d3-hierarchy";
+import {
+  hierarchy,
+  tree,
+  HierarchyNode,
+  HierarchyPointLink,
+} from "d3-hierarchy";
 import { select, Selection } from "d3-selection";
 import { zoom, ZoomBehavior, zoomIdentity, ZoomTransform } from "d3-zoom";
 import { linkVertical, Link } from "d3-shape";
@@ -102,11 +107,24 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
     };
     assignPositions(root);
 
-    const linkGen: Link<any, any, [number, number]> = linkVertical()
-      .x((d) => d[0])
-      .y((d) => d[0]);
+    interface Node {
+      x: number;
+      y: number;
+    }
 
-    g.selectAll(".link")
+    interface Link {
+      source: Node;
+      target: Node;
+    }
+
+    // Crear el generador de enlaces verticales con los tipos especificados
+    const linkGen = linkVertical<Link, Node>()
+      .x((d) => d.x)
+      .y((d) => d.y)
+      .source((d) => d.source)
+      .target((d) => d.target);
+
+    g.selectAll<SVGPathElement, Link>(".link")
       .data(root.links())
       .enter()
       .append("path")
@@ -115,7 +133,7 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
       .attr("stroke", isDark ? "#94a3b8" : "#64748b")
       .attr("stroke-width", 2)
       .attr("stroke-opacity", 0.6)
-      .attr("d", (d) => linkGen(d as any)) // Type assertion due to complex D3 link typing
+      .attr("d", (d) => linkGen(d as any))
       .style("transition", "all 0.3s ease");
 
     const nodeEnter = g
