@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import { LangCode, LANGCODES } from "@/lib/langcodes";
 import { extractEtymologySection, fetchWiktionaryData } from "@/lib/wiktionary";
-import { searchWordAtom } from "@/store/atom";
-import { useAtom } from "jotai";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
@@ -15,12 +13,17 @@ import {
 } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
-interface WordInfoPanelSheetProps {
+export default function WordInfoSheet({
+  className,
+  word,
+  lang,
+  onOpenChange,
+}: {
   className?: string;
-}
-
-export default function WordInfoSheet({ className }: WordInfoPanelSheetProps) {
-  const [{ word, lang }, setSearchWordAtom] = useAtom(searchWordAtom);
+  word: string | null;
+  lang: LangCode | null;
+  onOpenChange: (isOpen: boolean) => void;
+}) {
   const [etymology, setEtymology] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const isMobile = useMediaQuery("(max-width: 480px)");
@@ -37,7 +40,7 @@ export default function WordInfoSheet({ className }: WordInfoPanelSheetProps) {
   }, [word, lang]);
 
   return (
-    <Sheet open={open} onOpenChange={() => setSearchWordAtom({})}>
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side={isMobile ? "bottom" : "right"} className={className}>
         <div className="flex flex-col h-full">
           <SheetHeader className="flex-none">

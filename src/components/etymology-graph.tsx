@@ -1,12 +1,14 @@
 "use client";
 
 import { EtymologyNode } from "@/lib/etymology";
-import { searchWordAtom } from "@/store/atom";
-import { useAtom } from "jotai";
 import { motion } from "framer-motion";
+import WordInfoSheet from "@/components/word-info-sheet";
+import { useState } from "react";
+import { LangCode } from "@/lib/langcodes";
 
 const EtymologyGraph = ({ graph }: { graph: EtymologyNode }) => {
-  const [searchWord, setSearchWord] = useAtom(searchWordAtom);
+  const [word, setWord] = useState<string | null>(null);
+  const [lang, setLang] = useState<LangCode | null>(null);
 
   const renderNode = (node: EtymologyNode, depth = 0) => {
     return (
@@ -18,9 +20,7 @@ const EtymologyGraph = ({ graph }: { graph: EtymologyNode }) => {
       >
         <motion.div
           className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 rounded-md min-w-[11rem] text-center hover:border-gray-400 dark:hover:border-gray-500 transition-colors cursor-pointer"
-          onClick={() =>
-            setSearchWord(() => ({ word: node.word, lang: node.lang }))
-          }
+          onClick={() => (setWord(node.word), setLang(node.lang))}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
@@ -59,7 +59,15 @@ const EtymologyGraph = ({ graph }: { graph: EtymologyNode }) => {
   };
 
   return (
-    <div className="flex justify-center items-start">{renderNode(graph)}</div>
+    <>
+      <div className="flex justify-center items-start">{renderNode(graph)}</div>
+      <WordInfoSheet
+        className="min-w-[50vw] p-8 overflow-y-auto"
+        word={word}
+        lang={lang}
+        onOpenChange={(isOpen) => !isOpen && setWord(null)}
+      />
+    </>
   );
 };
 
