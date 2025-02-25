@@ -20,8 +20,8 @@ export default function WordInfoSheet({
   onOpenChange,
 }: {
   className?: string;
-  word: string | null;
-  lang: LangCode | null;
+  word?: string;
+  lang?: LangCode;
   onOpenChange: (isOpen: boolean) => void;
 }) {
   const [etymology, setEtymology] = useState<string | null>(null);

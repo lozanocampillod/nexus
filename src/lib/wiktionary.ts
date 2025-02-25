@@ -8,13 +8,6 @@ export interface WiktionaryData {
   };
 }
 
-/**
- * Fetches Wiktionary data for a given word and language.
- *
- * @param word - The word to look up.
- * @param lang - The language code.
- * @returns A promise resolving to the WiktionaryData.
- */
 export async function fetchWiktionaryData(
   word: string,
   lang: LangCode
@@ -50,15 +43,6 @@ export async function fetchWiktionaryData(
   return response.json();
 }
 
-/**
- * A generic helper function to extract section lines from an array of lines.
- *
- * @param lines - The array of lines to search through.
- * @param headerRegex - The regex pattern that indicates the start of the section.
- * @param endRegex - The regex pattern that indicates the start of a new section.
- * @param errorMessage - The error message to throw if the section is not found.
- * @returns The array of lines belonging to the section.
- */
 function extractSection(
   lines: string[],
   headerRegex: RegExp,
@@ -92,13 +76,6 @@ function extractSection(
   return sectionLines;
 }
 
-/**
- * Extracts the language-specific section from raw Wiktionary wikitext.
- *
- * @param wikitext - The complete wikitext fetched from Wiktionary.
- * @param language - The language (e.g., "English") to extract.
- * @returns An array of lines corresponding to the language section.
- */
 export function extractLanguageSection(
   wikitext: string,
   language: string
@@ -115,13 +92,6 @@ export function extractLanguageSection(
   );
 }
 
-/**
- * Extracts a specific subsection (e.g., Etymology) from a language section.
- *
- * @param sectionLines - The lines of a language section.
- * @param subsectionTitle - The title of the subsection to extract.
- * @returns The content of the subsection as a trimmed string.
- */
 export function extractSubsection(
   sectionLines: string[],
   subsectionTitle: string
@@ -142,13 +112,6 @@ export function extractSubsection(
     .trim();
 }
 
-/**
- * Convenience function to extract the etymology subsection for a given language.
- *
- * @param data - The WiktionaryData fetched.
- * @param lang - The language code.
- * @returns The etymology section content as a string.
- */
 export function extractEtymologySection(
   data: WiktionaryData,
   lang: LangCode
