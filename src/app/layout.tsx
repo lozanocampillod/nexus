@@ -43,7 +43,7 @@ export default function RootLayout({
           </header>
 
           <main className="flex-1 p-4 md:p-8">
-            <div className="flex flex-col h-full gap-8 items-center justify-center">
+            <div className="flex flex-col h-full gap-4 items-center justify-center">
               <Card className="lg:w-1/2 w-full">
                 <CardHeader>
                   <CardTitle className="text-center">
