@@ -38,23 +38,23 @@ export async function buildEtymologyGraph(
 
   const rootNodes =
     rootTemplates.length > 0
-      ? await Promise.resolve(
+      ? await buildEtymologyGraph(
+          rootTemplates[0].word,
+          rootTemplates[0].type,
+          rootTemplates[0].srcLang,
+          depth - 1
+        ).catch(() =>
           buildEtymologyGraph(
-            rootTemplates[0].word,
+            removeDiacritics(rootTemplates[0].word),
             rootTemplates[0].type,
             rootTemplates[0].srcLang,
             depth - 1
-          )
-        ).catch(() => {
-          return Promise.resolve(
-            buildEtymologyGraph(
-              removeDiacritics(rootTemplates[0].word),
-              rootTemplates[0].type,
-              rootTemplates[0].srcLang,
-              depth - 1
-            )
-          ).catch(() => null);
-        })
+          ).catch(() => ({
+            type: rootTemplates[0].type,
+            lang: rootTemplates[0].srcLang ?? "und",
+            word: rootTemplates[0].word,
+          }))
+        )
       : null;
 
   const cognateNodes = parsedTemplates
