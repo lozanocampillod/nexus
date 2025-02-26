@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { hierarchy, tree, HierarchyNode } from "d3-hierarchy";
 import { select } from "d3-selection";
-import { zoom, ZoomBehavior, zoomIdentity } from "d3-zoom";
+import { zoom, ZoomBehavior, zoomIdentity, zoomTransform } from "d3-zoom";
 import { linkVertical } from "d3-shape";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, RotateCcw, Maximize2 } from "lucide-react";
@@ -16,13 +16,19 @@ import {
 import { EtymologyNode } from "@/lib/etymology";
 import { LangCode } from "@/lib/langcodes";
 
+// Custom type to ensure x and y properties are defined.
+type TreeNode = HierarchyNode<EtymologyNode> & {
+  x: number;
+  y: number;
+};
+
 interface TreeSVGProps {
   graph: EtymologyNode;
   isFullscreen?: boolean;
   onNodeClick?: (word: string, lang: LangCode) => void;
 }
 
-// Utility function to calculate text width
+// Utility to measure text width.
 const calculateTextWidth = (
   text: string,
   fontSize: number,
@@ -33,6 +39,35 @@ const calculateTextWidth = (
   if (!context) return text.length * fontSize * 0.6;
   context.font = `${fontWeight} ${fontSize}px Arial, sans-serif`;
   return context.measureText(text).width;
+};
+
+const computeBoxWidth = (node: TreeNode): number => {
+  const wordWidth = calculateTextWidth(node.data.word, 14, "600");
+  const infoText = `${node.data.type || "root"} · ${node.data.lang}`;
+  const infoWidth = calculateTextWidth(infoText, 12);
+  return Math.max(100, wordWidth, infoWidth) + 30;
+};
+
+// Reorders children so that etymons remain centered with cognates split.
+const assignPositions = (node: TreeNode, spacing: number) => {
+  if (!node.children) return;
+  const etymonChildren = node.children.filter(
+    (child) => child.data.type !== "cognate"
+  );
+  const cognateChildren = node.children.filter(
+    (child) => child.data.type === "cognate"
+  );
+  const leftCount = Math.floor(cognateChildren.length / 2);
+  const leftCognates = cognateChildren.slice(0, leftCount);
+  const rightCognates = cognateChildren.slice(leftCount);
+  node.children = [...leftCognates, ...etymonChildren, ...rightCognates];
+
+  const n = node.children.length;
+  const mid = (n - 1) / 2;
+  node.children.forEach((child, i) => {
+    (child as TreeNode).x = node.x + (i - mid) * spacing;
+    assignPositions(child as TreeNode, spacing);
+  });
 };
 
 const ZoomControls: React.FC<{
@@ -48,11 +83,11 @@ const ZoomControls: React.FC<{
   onFullscreen,
   showFullscreen = true,
 }) => (
-  <div className="absolute left-4 bottom-4 flex flex-col space-y-2 bg-gray-200 dark:bg-gray-800 p-2 rounded-lg shadow-lg z-10">
+  <div className="absolute left-4 bottom-4 flex flex-col space-y-2 bg-neutral-100 dark:bg-neutral-900 p-2 rounded shadow z-10">
     <Button
       variant="outline"
       size="icon"
-      className="text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+      className="text-neutral-800 dark:text-neutral-200 border"
       onClick={onZoomIn}
     >
       <Plus className="w-5 h-5" />
@@ -60,7 +95,7 @@ const ZoomControls: React.FC<{
     <Button
       variant="outline"
       size="icon"
-      className="text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+      className="text-neutral-800 dark:text-neutral-200 border"
       onClick={onZoomOut}
     >
       <Minus className="w-5 h-5" />
@@ -68,7 +103,7 @@ const ZoomControls: React.FC<{
     <Button
       variant="outline"
       size="icon"
-      className="text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+      className="text-neutral-800 dark:text-neutral-200 border"
       onClick={onReset}
     >
       <RotateCcw className="w-5 h-5" />
@@ -77,7 +112,7 @@ const ZoomControls: React.FC<{
       <Button
         variant="outline"
         size="icon"
-        className="text-gray-800 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+        className="text-neutral-800 dark:text-neutral-200 border"
         onClick={onFullscreen}
       >
         <Maximize2 className="w-5 h-5" />
@@ -113,122 +148,78 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { theme } = useTheme();
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
-
   const isDark = theme === "dark";
 
   const renderTree = useCallback(() => {
     if (!svgRef.current || !containerRef.current) return;
-
+    const margin = { top: 40, right: 40, bottom: 40, left: 40 };
     const width = isFullscreen
       ? window.innerWidth
       : containerRef.current.clientWidth;
     const height = isFullscreen
       ? window.innerHeight
       : containerRef.current.clientHeight;
-    const margin = { top: 40, right: 150, bottom: 40, left: 150 };
 
-    const svg = select(svgRef.current);
-    svg
+    // Minimal monochromatic colors.
+    const backgroundColor = isDark ? "#1a1a1a" : "#fff";
+    const nodeFill = isDark ? "#333" : "#fff";
+    const nodeStroke = isDark ? "#666" : "#ccc";
+    const textColor = isDark ? "#eee" : "#333";
+    const linkColor = isDark ? "#666" : "#ccc";
+
+    const svg = select(svgRef.current)
       .attr("width", width)
       .attr("height", height)
-      .style("background", isDark ? "#1e293b" : "#f8fafc")
+      .style("background", backgroundColor)
       .style("display", "block");
 
+    // Preserve the current zoom transform.
+    const currentTransform = zoomBehaviorRef.current
+      ? zoomTransform(svgRef.current)
+      : zoomIdentity.translate(margin.left, margin.top);
+
     svg.selectAll("*").remove();
+    const g = svg.append("g").attr("transform", currentTransform.toString());
 
-    // Create a single group with the margin applied.
-    const g = svg
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-
-    // Create hierarchy and set up tree layout.
-    const root: HierarchyNode<EtymologyNode> = hierarchy(
-      graph,
-      (d) => d.relations
-    );
+    // Build hierarchy and layout.
+    const root = hierarchy(graph, (d) => d.relations);
     const treeLayout = tree<EtymologyNode>().size([
       width - margin.left - margin.right,
       height - margin.top - margin.bottom,
     ]);
     treeLayout(root);
-
     // Center the root.
-    root.x = (width - margin.left - margin.right) / 2;
-    const spacing = 180;
-
-    const assignPositions = (
-      node: HierarchyNode<EtymologyNode>,
-      spacing: number
-    ) => {
-      if (!node.children) return;
-      const etymonChildren = node.children.filter(
-        (child) => child.data.type !== "cognate"
-      );
-      const cognateChildren = node.children.filter(
-        (child) => child.data.type === "cognate"
-      );
-      const leftCount = Math.floor(cognateChildren.length / 2);
-      const leftCognates = cognateChildren.slice(0, leftCount);
-      const rightCognates = cognateChildren.slice(leftCount);
-      node.children = [...leftCognates, ...etymonChildren, ...rightCognates];
-
-      const n = node.children.length;
-      const mid = (n - 1) / 2;
-      node.children.forEach((child, i) => {
-        child.x = node.x! + (i - mid) * spacing;
-        assignPositions(child, spacing);
-      });
-    };
-    assignPositions(root, spacing);
+    (root as TreeNode).x = (width - margin.left - margin.right) / 2;
+    assignPositions(root as TreeNode, 180);
 
     const linkGen = linkVertical()
       .x((d: any) => d.x)
       .y((d: any) => d.y);
 
-    g.selectAll<SVGPathElement, any>(".link")
+    // Draw links.
+    g.selectAll(".link")
       .data(root.links())
       .enter()
       .append("path")
       .attr("class", "link")
       .attr("fill", "none")
-      .attr("stroke", isDark ? "#94a3b8" : "#64748b")
+      .attr("stroke", linkColor)
       .attr("stroke-width", 1.5)
-      .attr("stroke-opacity", 0.5)
-      .attr("d", (d) => linkGen(d as any))
-      .style("transition", "all 0.3s ease");
+      .attr("d", (d) => linkGen(d as any));
 
-    const nodeEnter = g
+    // Draw nodes.
+    const nodes = g
       .selectAll(".node")
       .data(root.descendants())
       .enter()
       .append("g")
-      .attr(
-        "class",
-        (d) => `node${d.children ? " node--internal" : " node--leaf"}`
-      )
+      .attr("class", "node")
       .attr("transform", (d) => `translate(${d.x},${d.y})`)
-      .on("click", (_, d) => onNodeClick?.(d.data.word, d.data.lang))
-      .on("mouseover", function () {
-        select(this)
-          .select("rect")
-          .attr("stroke-width", 2)
-          .attr("fill-opacity", 0.9);
-      })
-      .on("mouseout", function () {
-        select(this)
-          .select("rect")
-          .attr("stroke-width", 1.5)
-          .attr("fill-opacity", 1);
-      });
+      .on("click", (_, d) => onNodeClick?.(d.data.word, d.data.lang));
 
-    // Calculate node sizes based on text content.
-    nodeEnter.each(function (d) {
+    nodes.each(function (d) {
       const node = select(this);
-      const wordWidth = calculateTextWidth(d.data.word, 14, "600");
-      const infoText = `${d.data.type || "root"} · ${d.data.lang}`;
-      const infoWidth = calculateTextWidth(infoText, 12);
-      const maxTextWidth = Math.max(wordWidth, infoWidth);
-      const boxWidth = Math.max(100, maxTextWidth + 30);
+      const boxWidth = computeBoxWidth(d as TreeNode);
       const boxHeight = 60;
       const rectX = -boxWidth / 2;
       const rectY = -boxHeight / 2;
@@ -241,64 +232,42 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
         .attr("height", boxHeight)
         .attr("rx", 6)
         .attr("ry", 6)
-        .attr("fill", (d: any) =>
-          d.depth === 0
-            ? isDark
-              ? "#3b82f6"
-              : "#60a5fa"
-            : d.children
-            ? isDark
-              ? "#374151"
-              : "#dbeafe"
-            : isDark
-            ? "#1f2937"
-            : "#ffffff"
-        )
-        .attr("stroke", isDark ? "#60a5fa" : "#3b82f6")
+        .attr("fill", nodeFill)
+        .attr("stroke", nodeStroke)
         .attr("stroke-width", 1.5)
+        .style("cursor", "pointer");
+
+      node
+        .append("text")
+        .attr("dy", "-0.4em")
+        .attr("text-anchor", "middle")
+        .style("font-family", "Arial, sans-serif")
+        .style("font-size", "14px")
+        .style("fill", textColor)
+        .style("font-weight", "600")
         .style("cursor", "pointer")
-        .style("transition", "all 0.2s ease");
+        .text(d.data.word);
+
+      node
+        .append("text")
+        .attr("dy", "1em")
+        .attr("text-anchor", "middle")
+        .style("font-family", "Arial, sans-serif")
+        .style("font-size", "12px")
+        .style("fill", textColor)
+        .style("opacity", 0.7)
+        .style("cursor", "pointer")
+        .text(`${d.data.type || "root"} · ${d.data.lang}`);
     });
 
-    nodeEnter
-      .append("text")
-      .attr("dy", "-0.4em")
-      .attr("text-anchor", "middle")
-      .style("font-family", "Arial, sans-serif")
-      .style("font-size", "14px")
-      .style("fill", isDark ? "#f1f5f9" : "#1e293b")
-      .style("font-weight", "600")
-      .style("cursor", "pointer")
-      .text((d) => d.data.word);
-
-    nodeEnter
-      .append("text")
-      .attr("dy", "1em")
-      .attr("text-anchor", "middle")
-      .style("font-family", "Arial, sans-serif")
-      .style("font-size", "12px")
-      .style("fill", isDark ? "#94a3b8" : "#64748b")
-      .style("font-weight", "400")
-      .style("cursor", "pointer")
-      .text((d) => `${d.data.type || "root"} · ${d.data.lang}`);
-
     // Set up zoom behavior.
-    const zoomBehavior: ZoomBehavior<SVGSVGElement, unknown> = zoom<
-      SVGSVGElement,
-      unknown
-    >()
+    const zoomBehavior = zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.5, 3])
       .on("zoom", (event) => {
         g.attr("transform", event.transform.toString());
       });
 
-    // Apply zoom behavior with an initial transform that includes the margin.
-    svg
-      .call(zoomBehavior)
-      .call(
-        zoomBehavior.transform,
-        zoomIdentity.translate(margin.left, margin.top)
-      );
+    svg.call(zoomBehavior).call(zoomBehavior.transform, currentTransform);
     zoomBehaviorRef.current = zoomBehavior;
   }, [graph, isFullscreen, isDark, onNodeClick]);
 
@@ -308,9 +277,7 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
     window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("resize", handleResize);
-      if (svgRef.current) {
-        select(svgRef.current).selectAll("*").remove();
-      }
+      if (svgRef.current) select(svgRef.current).selectAll("*").remove();
     };
   }, [renderTree]);
 
@@ -318,6 +285,7 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
     if (svgRef.current && zoomBehaviorRef.current) {
       select(svgRef.current)
         .transition()
+        .duration(300)
         .call(zoomBehaviorRef.current.scaleBy, 1.2);
     }
   };
@@ -326,15 +294,17 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
     if (svgRef.current && zoomBehaviorRef.current) {
       select(svgRef.current)
         .transition()
+        .duration(300)
         .call(zoomBehaviorRef.current.scaleBy, 0.8);
     }
   };
 
   const handleResetZoom = () => {
     if (svgRef.current && zoomBehaviorRef.current) {
-      const margin = { top: 40, right: 150, bottom: 40, left: 150 };
+      const margin = { top: 40, right: 40, bottom: 40, left: 40 };
       select(svgRef.current)
         .transition()
+        .duration(300)
         .call(
           zoomBehaviorRef.current.transform,
           zoomIdentity.translate(margin.left, margin.top)
@@ -342,17 +312,11 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
     }
   };
 
-  const toggleFullscreen = () => {
-    setIsFullscreenOpen(true);
-  };
+  const toggleFullscreen = () => setIsFullscreenOpen(true);
 
   return (
     <div ref={containerRef} className="w-full h-full relative">
-      <svg
-        ref={svgRef}
-        className="w-full h-full"
-        style={{ display: "block" }}
-      />
+      <svg ref={svgRef} className="w-full h-full" />
       <ZoomControls
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
