@@ -22,15 +22,18 @@ interface TreeSVGProps {
   onNodeClick?: (word: string, lang: LangCode) => void;
 }
 
-interface Node {
-  x: number;
-  y: number;
-}
-
-interface Link {
-  source: Node;
-  target: Node;
-}
+// Utility function to calculate text width
+const calculateTextWidth = (
+  text: string,
+  fontSize: number,
+  fontWeight: string = "normal"
+): number => {
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) return text.length * fontSize * 0.6;
+  context.font = `${fontWeight} ${fontSize}px Arial, sans-serif`;
+  return context.measureText(text).width;
+};
 
 const ZoomControls: React.FC<{
   onZoomIn: () => void;
@@ -98,21 +101,6 @@ const FullscreenDialog: React.FC<{
   </Dialog>
 );
 
-// Utility function to calculate text width
-const calculateTextWidth = (
-  text: string,
-  fontSize: number,
-  fontWeight: string = "normal"
-): number => {
-  const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d");
-  if (!context) return text.length * fontSize * 0.6; // Fallback if canvas not supported
-
-  context.font = `${fontWeight} ${fontSize}px Arial, sans-serif`;
-  return context.measureText(text).width;
-};
-
-// Main TreeSVG Component
 const TreeSVG: React.FC<TreeSVGProps> = ({
   graph,
   isFullscreen = false,
@@ -128,7 +116,6 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
 
   const isDark = theme === "dark";
 
-  // Tree rendering function
   const renderTree = useCallback(() => {
     if (!svgRef.current || !containerRef.current) return;
 
@@ -149,12 +136,12 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
 
     svg.selectAll("*").remove();
 
-    const gContainer = svg
+    // Create a single group with the margin applied.
+    const g = svg
       .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
-    const g = gContainer.append("g");
 
-    // Create hierarchy and set up tree layout
+    // Create hierarchy and set up tree layout.
     const root: HierarchyNode<EtymologyNode> = hierarchy(
       graph,
       (d) => d.relations
@@ -165,8 +152,9 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
     ]);
     treeLayout(root);
 
+    // Center the root.
     root.x = (width - margin.left - margin.right) / 2;
-    const spacing = 180; // Increased spacing between nodes
+    const spacing = 180;
 
     const assignPositions = (
       node: HierarchyNode<EtymologyNode>,
@@ -193,19 +181,19 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
     };
     assignPositions(root, spacing);
 
-    const linkGen = linkVertical<Link, Node>()
-      .x((d) => d.x)
-      .y((d) => d.y);
+    const linkGen = linkVertical()
+      .x((d: any) => d.x)
+      .y((d: any) => d.y);
 
-    g.selectAll<SVGPathElement, Link>(".link")
+    g.selectAll<SVGPathElement, any>(".link")
       .data(root.links())
       .enter()
       .append("path")
       .attr("class", "link")
       .attr("fill", "none")
       .attr("stroke", isDark ? "#94a3b8" : "#64748b")
-      .attr("stroke-width", 1.5) // Slightly thinner for minimalism
-      .attr("stroke-opacity", 0.5) // More subtle
+      .attr("stroke-width", 1.5)
+      .attr("stroke-opacity", 0.5)
       .attr("d", (d) => linkGen(d as any))
       .style("transition", "all 0.3s ease");
 
@@ -233,21 +221,15 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
           .attr("fill-opacity", 1);
       });
 
-    // Calculate node sizes based on text content
+    // Calculate node sizes based on text content.
     nodeEnter.each(function (d) {
       const node = select(this);
       const wordWidth = calculateTextWidth(d.data.word, 14, "600");
       const infoText = `${d.data.type || "root"} · ${d.data.lang}`;
       const infoWidth = calculateTextWidth(infoText, 12);
-
-      // Determine the wider text
       const maxTextWidth = Math.max(wordWidth, infoWidth);
-
-      // Set minimum width and add padding
       const boxWidth = Math.max(100, maxTextWidth + 30);
       const boxHeight = 60;
-
-      // Apply the calculated dimensions
       const rectX = -boxWidth / 2;
       const rectY = -boxHeight / 2;
 
@@ -257,7 +239,7 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
         .attr("y", rectY)
         .attr("width", boxWidth)
         .attr("height", boxHeight)
-        .attr("rx", 6) // Smaller rounded corners for minimalism
+        .attr("rx", 6)
         .attr("ry", 6)
         .attr("fill", (d: any) =>
           d.depth === 0
@@ -273,12 +255,11 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
             : "#ffffff"
         )
         .attr("stroke", isDark ? "#60a5fa" : "#3b82f6")
-        .attr("stroke-width", 1.5) // Thinner stroke for minimalism
+        .attr("stroke-width", 1.5)
         .style("cursor", "pointer")
         .style("transition", "all 0.2s ease");
     });
 
-    // Render the word (top line)
     nodeEnter
       .append("text")
       .attr("dy", "-0.4em")
@@ -290,7 +271,6 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
       .style("cursor", "pointer")
       .text((d) => d.data.word);
 
-    // Render type and language (second line)
     nodeEnter
       .append("text")
       .attr("dy", "1em")
@@ -302,7 +282,7 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
       .style("cursor", "pointer")
       .text((d) => `${d.data.type || "root"} · ${d.data.lang}`);
 
-    // Set up zoom behavior
+    // Set up zoom behavior.
     const zoomBehavior: ZoomBehavior<SVGSVGElement, unknown> = zoom<
       SVGSVGElement,
       unknown
@@ -312,17 +292,20 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
         g.attr("transform", event.transform.toString());
       });
 
-    svg.call(zoomBehavior);
+    // Apply zoom behavior with an initial transform that includes the margin.
+    svg
+      .call(zoomBehavior)
+      .call(
+        zoomBehavior.transform,
+        zoomIdentity.translate(margin.left, margin.top)
+      );
     zoomBehaviorRef.current = zoomBehavior;
   }, [graph, isFullscreen, isDark, onNodeClick]);
 
-  // Handle component mount/unmount and window resize
   useEffect(() => {
     renderTree();
-
     const handleResize = () => renderTree();
     window.addEventListener("resize", handleResize);
-
     return () => {
       window.removeEventListener("resize", handleResize);
       if (svgRef.current) {
@@ -349,9 +332,13 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
 
   const handleResetZoom = () => {
     if (svgRef.current && zoomBehaviorRef.current) {
+      const margin = { top: 40, right: 150, bottom: 40, left: 150 };
       select(svgRef.current)
         .transition()
-        .call(zoomBehaviorRef.current.transform, zoomIdentity);
+        .call(
+          zoomBehaviorRef.current.transform,
+          zoomIdentity.translate(margin.left, margin.top)
+        );
     }
   };
 
@@ -366,7 +353,6 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
         className="w-full h-full"
         style={{ display: "block" }}
       />
-
       <ZoomControls
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
@@ -374,7 +360,6 @@ const TreeSVG: React.FC<TreeSVGProps> = ({
         onFullscreen={toggleFullscreen}
         showFullscreen={!isFullscreen}
       />
-
       {!isFullscreen && (
         <FullscreenDialog
           isOpen={isFullscreenOpen}

@@ -36,26 +36,29 @@ export async function buildEtymologyGraph(
     (template) => !EXCLUDED_ROOT_TEMPLATES.includes(template.type)
   );
 
-  const rootNodes =
-    rootTemplates.length > 0
-      ? await buildEtymologyGraph(
-          rootTemplates[0].word,
-          rootTemplates[0].type,
-          rootTemplates[0].srcLang,
+  console.log(rootTemplates);
+
+  const firstValidTemplate = rootTemplates.find((t) => !!t.word);
+
+  const rootNodes = firstValidTemplate
+    ? await buildEtymologyGraph(
+        firstValidTemplate.word,
+        firstValidTemplate.type,
+        firstValidTemplate.srcLang,
+        depth - 1
+      ).catch(() =>
+        buildEtymologyGraph(
+          removeDiacritics(firstValidTemplate.word),
+          firstValidTemplate.type,
+          firstValidTemplate.srcLang,
           depth - 1
-        ).catch(() =>
-          buildEtymologyGraph(
-            removeDiacritics(rootTemplates[0].word),
-            rootTemplates[0].type,
-            rootTemplates[0].srcLang,
-            depth - 1
-          ).catch(() => ({
-            type: rootTemplates[0].type,
-            lang: rootTemplates[0].srcLang ?? "und",
-            word: rootTemplates[0].word,
-          }))
-        )
-      : null;
+        ).catch(() => ({
+          type: firstValidTemplate.type,
+          lang: firstValidTemplate.srcLang ?? "und",
+          word: firstValidTemplate.word,
+        }))
+      )
+    : null;
 
   const cognateNodes = parsedTemplates
     .filter((template) => template.type === "cognate")
