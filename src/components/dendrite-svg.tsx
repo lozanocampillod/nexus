@@ -388,7 +388,7 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
           zoomBehaviorRef.current.transform,
           zoomIdentity.translate(
             containerRef.current!.clientWidth / 2,
-            containerRef.current!.clientWidth / 2
+            containerRef.current!.clientHeight / 2
           )
         );
     }
