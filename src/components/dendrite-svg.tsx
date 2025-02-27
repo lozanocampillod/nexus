@@ -42,7 +42,6 @@ export interface DendriteGraph {
 // **Extended Node Type for Hierarchy**
 export interface ExtendedEtymologyNode extends GraphNode {
   relations?: ExtendedEtymologyNode[];
-  duplicateOf?: string;
   relationFromParent?: string; // Added to store edge type
 }
 
@@ -187,10 +186,9 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
   const isDark = theme === "dark";
 
   const treeData = useMemo(() => transformGraphData(graph), [graph]);
-  if (!treeData) return null;
 
   const renderTree = useCallback(() => {
-    if (!svgRef.current || !containerRef.current) return;
+    if (!svgRef.current || !containerRef.current || !treeData) return;
 
     const width = isFullscreen
       ? window.innerWidth
