@@ -21,7 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Maximize2, Minus, Plus, RotateCcw } from "lucide-react";
 
-// New graph shape types with an optional branch length (default 1)
+// **Graph Data Types**
 export interface GraphNode {
   lang: LangCode;
   word: string;
@@ -31,7 +31,7 @@ export interface GraphNode {
 export interface GraphEdge {
   source: string; // e.g., "en:house"
   target: string; // e.g., "enm:hous"
-  type: string;
+  type: string; // e.g., "cognate", "etymon"
 }
 
 export interface DendriteGraph {
@@ -39,16 +39,15 @@ export interface DendriteGraph {
   edges: GraphEdge[];
 }
 
-// Extended node type for hierarchical data
+// **Extended Node Type for Hierarchy**
 export interface ExtendedEtymologyNode extends GraphNode {
   relations?: ExtendedEtymologyNode[];
   duplicateOf?: string;
+  relationFromParent?: string; // Added to store edge type
 }
 
 /**
- * Transform the flat graph (nodes and edges) into a tree.
- * Uses a DFS over an adjacency list. Also assigns a default branch length
- * (1) when a node does not have one.
+ * Transform the flat graph into a hierarchical tree, including relation types.
  */
 const transformGraphData = (
   graph: DendriteGraph
@@ -63,26 +62,26 @@ const transformGraphData = (
     });
   });
 
-  // Build an adjacency list: source -> [target, …]
-  const adj = new Map<string, string[]>();
+  // **Build adjacency list with relation types: source -> Map<target, type>**
+  const adj = new Map<string, Map<string, string>>();
   graph.edges.forEach((edge) => {
     if (!adj.has(edge.source)) {
-      adj.set(edge.source, []);
+      adj.set(edge.source, new Map());
     }
-    if (!adj.get(edge.source)!.includes(edge.target)) {
-      adj.get(edge.source)!.push(edge.target);
-    }
+    adj.get(edge.source)!.set(edge.target, edge.type);
   });
 
-  // DFS to build a forest from the adjacency list.
+  // **DFS to build the tree and assign relation types**
   const visited = new Set<string>();
   const dfs = (id: string): ExtendedEtymologyNode => {
     visited.add(id);
     const node = nodesMap.get(id)!;
-    const childrenIds = adj.get(id) || [];
-    childrenIds.forEach((childId) => {
+    const childrenIds = adj.get(id) || new Map();
+    childrenIds.forEach((type, childId) => {
       if (!visited.has(childId) && nodesMap.has(childId)) {
-        node.relations!.push(dfs(childId));
+        const childNode = dfs(childId);
+        childNode.relationFromParent = type; // Store relation type
+        node.relations!.push(childNode);
       }
     });
     return node;
@@ -95,11 +94,10 @@ const transformGraphData = (
     }
   });
 
-  // If more than one tree exists, wrap them in a dummy root.
-  if (forest.length === 1) return forest[0];
-  return null;
+  return forest.length === 1 ? forest[0] : null;
 };
 
+// **ZoomControls Component (Unchanged)**
 const ZoomControls: React.FC<{
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -151,6 +149,7 @@ const ZoomControls: React.FC<{
   </div>
 );
 
+// **FullscreenDialog Component (Unchanged)**
 const FullscreenDialog: React.FC<{
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -166,6 +165,7 @@ const FullscreenDialog: React.FC<{
   </Dialog>
 );
 
+// **DendriteSVG Component**
 interface DendriteSVGProps {
   graph: EtymologyGraph;
   isFullscreen?: boolean;
@@ -186,26 +186,22 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const isDark = theme === "dark";
 
-  // Transform the flat graph into a hierarchical tree.
   const treeData = useMemo(() => transformGraphData(graph), [graph]);
   if (!treeData) return null;
-
-  const width = isFullscreen
-    ? window.innerWidth
-    : containerRef.current!.clientWidth;
-  const height = isFullscreen
-    ? window.innerHeight
-    : containerRef.current!.clientHeight;
 
   const renderTree = useCallback(() => {
     if (!svgRef.current || !containerRef.current) return;
 
-    // Define layout dimensions.
+    const width = isFullscreen
+      ? window.innerWidth
+      : containerRef.current.clientWidth;
+    const height = isFullscreen
+      ? window.innerHeight
+      : containerRef.current.clientHeight;
 
     const outerRadius = Math.min(width, height) / 2;
-    const innerRadius = outerRadius - 100; // reserve space for labels
+    const innerRadius = outerRadius - 50;
 
-    // Colors based on theme.
     const backgroundColor = isDark ? "#1a1a1a" : "#fff";
     const nodeFill = isDark ? "#333" : "#fff";
     const nodeStroke = isDark ? "#666" : "#ccc";
@@ -218,7 +214,6 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
       .style("background", backgroundColor)
       .style("display", "block");
 
-    // Center the view.
     const currentTransform = zoomBehaviorRef.current
       ? zoomTransform(svgRef.current)
       : zoomIdentity.translate(width / 2, height / 2);
@@ -226,16 +221,12 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
     svg.selectAll("*").remove();
     const g = svg.append("g").attr("transform", currentTransform.toString());
 
-    // Create a radial hierarchy.
     const root = hierarchy(treeData, (d) => d.relations);
-
-    // Use cluster layout to compute angles.
     const clusterLayout = cluster<ExtendedEtymologyNode>()
       .size([360, innerRadius])
       .separation(() => 1);
     clusterLayout(root);
 
-    // Compute maximum accumulated branch length.
     function maxLength(node: any): number {
       return (
         (node.data.length || 1) +
@@ -245,7 +236,6 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
     const maxLen = maxLength(root);
     const k = innerRadius / maxLen;
 
-    // Recompute radial distance (“radius”) for each node based on branch lengths.
     function setRadius(node: any, y0: number) {
       const len = node.data.length || 1;
       node.radius = (y0 + len) * k;
@@ -255,7 +245,6 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
     }
     setRadius(root, 0);
 
-    // Custom curved link function (inspired by the Observable Tree of Life)
     function linkStep(
       startAngle: number,
       startRadius: number,
@@ -290,7 +279,7 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
       );
     }
 
-    // Draw links using the custom linkStep.
+    // **Draw Links with IDs**
     g.append("g")
       .selectAll("path")
       .data(root.links())
@@ -300,11 +289,11 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
       .attr("fill", "none")
       .attr("stroke", linkColor)
       .attr("stroke-width", 1.5)
+      .attr("id", (d, i) => `link-${i}`) // Unique ID for each link
       .attr("d", (d: any) =>
         linkStep(d.source.x, d.source.radius, d.target.x, d.target.radius)
       );
-
-    // Draw nodes.
+    // **Draw Nodes**
     const node = g
       .append("g")
       .selectAll("g")
@@ -320,10 +309,11 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
 
     node
       .append("circle")
-      .attr("r", 4)
+      .attr("r", 2)
       .attr("fill", nodeFill)
       .attr("stroke", nodeStroke);
 
+    // **Add Word and Language Code to Nodes**
     node
       .append("text")
       .attr("dy", "0.31em")
@@ -333,7 +323,24 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
       .style("font-family", "Arial, sans-serif")
       .style("font-size", "10px")
       .style("fill", textColor)
-      .text((d) => d.data.word);
+      .each(function (d) {
+        const text = select(this);
+        // Word
+        text
+          .append("tspan")
+          .attr("x", 0)
+          .attr("dy", "0em")
+          .text(d.data.word)
+          .attr("text-anchor", "middle");
+        // Language code below the word
+        text
+          .append("tspan")
+          .attr("x", 0)
+          .attr("dy", "1.2em") // Offset below the word
+          .style("font-size", "6px") // Smaller font
+          .text(d.data.lang)
+          .attr("text-anchor", "middle");
+      });
 
     // Configure zoom behavior.
     const zoomBehavior = zoom<SVGSVGElement, unknown>()
@@ -381,7 +388,10 @@ const DendriteSVG: React.FC<DendriteSVGProps> = ({
         .duration(300)
         .call(
           zoomBehaviorRef.current.transform,
-          zoomIdentity.translate(width / 2, height / 2)
+          zoomIdentity.translate(
+            containerRef.current!.clientWidth / 2,
+            containerRef.current!.clientWidth / 2
+          )
         );
     }
   };
