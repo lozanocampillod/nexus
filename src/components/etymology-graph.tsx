@@ -4,9 +4,10 @@ import React, { useRef, useEffect, useState, useCallback } from "react";
 import WordInfoSheet from "@/components/word-info-sheet";
 import { EtymologyNode } from "@/lib/etymology";
 import { LangCode } from "@/lib/langcodes";
-import TreeSVG from "@/components/tree-svg";
+import { dedupGraph, EtymologyGraph } from "@/lib/dedup-graph";
+import DendriteSVG from "@/components/dendrite-svg";
 
-export default function EtymologyTree({ graph }: { graph: EtymologyNode }) {
+export default function EtymologyTree({ graph }: { graph: EtymologyGraph }) {
   const [wordInfo, setWordInfo] = useState<{
     word: string;
     lang: LangCode;
@@ -18,7 +19,7 @@ export default function EtymologyTree({ graph }: { graph: EtymologyNode }) {
 
   return (
     <div className="relative w-full h-full overflow-hidden">
-      <TreeSVG graph={graph} onNodeClick={handleNodeClick} />
+      <DendriteSVG graph={graph} onNodeClick={handleNodeClick} />
       <WordInfoSheet
         className="min-w-[50vw] p-8 overflow-y-auto"
         word={wordInfo?.word}

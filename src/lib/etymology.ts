@@ -5,6 +5,7 @@ import {
   extractTemplates,
   fetchWiktionaryData,
 } from "@/lib/wiktionary";
+import { first } from "effect/GroupBy";
 
 export interface EtymologyNode {
   type: string;
@@ -18,65 +19,58 @@ export async function buildEtymologyGraph(
   word: string,
   type: string = "base",
   lang: LangCode = "en",
-  depth: number = 10
+  depth: number = 5
 ): Promise<EtymologyNode> {
-  if (depth === 0 || type === "cognate" || type === "unk") {
-    return {
-      type: type,
-      lang: lang,
-      word: word,
-    };
+  if (depth === 0 || type === "unk") {
+    return { type, lang, word };
   }
 
   const wikitext = await fetchWiktionaryData(word, lang);
   const etymologySection = extractEtymologySection(wikitext, lang);
   const templates = extractTemplates(etymologySection);
   const parsedTemplates = parseTemplates(templates);
+
   const rootTemplates = parsedTemplates.filter(
     (template) => !EXCLUDED_ROOT_TEMPLATES.includes(template.type)
   );
 
-  console.log(rootTemplates);
+  async function resolveGraph(
+    word: string,
+    type: string,
+    srcLang: LangCode,
+    currentDepth: number
+  ): Promise<EtymologyNode> {
+    try {
+      return await buildEtymologyGraph(word, type, srcLang, currentDepth - 1);
+    } catch {
+      try {
+        return await buildEtymologyGraph(
+          removeDiacritics(word),
+          type,
+          srcLang,
+          currentDepth - 1
+        );
+      } catch {
+        return { type, lang: srcLang ?? "und", word };
+      }
+    }
+  }
 
-  const firstValidTemplate = rootTemplates.find((t) => !!t.word);
+  const candidateRoot = rootTemplates.find((template) => !!template.word);
+  const cognateTemplates = parsedTemplates.filter(
+    (template) => template.type === "cognate"
+  );
+  const templatesToResolve = [candidateRoot, ...cognateTemplates].filter(
+    (template) => !!template
+  );
 
-  const rootNodes = firstValidTemplate
-    ? await buildEtymologyGraph(
-        firstValidTemplate.word,
-        firstValidTemplate.type,
-        firstValidTemplate.srcLang,
-        depth - 1
-      ).catch(() =>
-        buildEtymologyGraph(
-          removeDiacritics(firstValidTemplate.word),
-          firstValidTemplate.type,
-          firstValidTemplate.srcLang,
-          depth - 1
-        ).catch(() => ({
-          type: firstValidTemplate.type,
-          lang: firstValidTemplate.srcLang ?? "und",
-          word: firstValidTemplate.word,
-        }))
-      )
-    : null;
+  const relations = await Promise.all(
+    templatesToResolve.map(({ word, type, srcLang }) =>
+      resolveGraph(word, type, srcLang ?? "und", depth)
+    )
+  );
 
-  const cognateNodes = parsedTemplates
-    .filter((template) => template.type === "cognate")
-    .map((template) => ({
-      type: template.type,
-      lang: template.srcLang ?? "und",
-      word: template.word,
-    }));
-
-  return {
-    type: type,
-    lang: lang,
-    word: word,
-    relations: [
-      ...(rootNodes ? [rootNodes] : []),
-      ...(cognateNodes.length > 0 ? [...cognateNodes] : []),
-    ],
-  };
+  return { type, lang, word, relations };
 }
 
 function removeDiacritics(str: string) {
