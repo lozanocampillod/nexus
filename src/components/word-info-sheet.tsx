@@ -31,10 +31,14 @@ export default function WordInfoSheet({
   useEffect(() => {
     setEtymology(null);
     setOpen(!!word && !!lang);
+
     (async () => {
-      if (word && lang) {
+      if (!word || !lang) return;
+      try {
         const data = await fetchWiktionaryData(word, lang);
         setEtymology(extractEtymologySection(data, lang));
+      } catch {
+        setEtymology("Unable to fetch etymology");
       }
     })();
   }, [word, lang]);

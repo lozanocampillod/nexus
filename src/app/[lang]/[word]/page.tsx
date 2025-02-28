@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 
 async function fetchEtymologyGraph(word: string, lang: string) {
   const response = await fetch(
-    `${process.env.NEXT_PUBLIC_BASE_URL}/api/${lang}/${word}`
+    `${process.env.NEXT_PUBLIC_BASE_URL}/api/${lang}/${word}`,
+    { next: { revalidate: 3600 } }
   );
 
   if (!response.ok) {
